@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { GiftedChatUserSchema } from './user';
+import { ensureDate } from '../timestamps';
 
 // GiftedChat message compatibility:
 // {_id, text, createdAt, user, image?, video?, audio?, system?, sent?, received?}
@@ -38,7 +39,7 @@ export type Message = z.infer<typeof MessageSchema>;
 export const toGiftedChatMessage = (m: Message) => ({
   _id: m.id,
   text: m.text,
-  createdAt: m.createdAt as any,
+  createdAt: ensureDate(m.createdAt)!,
   user: {
     _id: m.userId,
     name: m.userName,

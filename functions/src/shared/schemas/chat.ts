@@ -1,10 +1,10 @@
 import { z } from 'zod';
 
-export const GroupSchema = z.object({
+// Unified Chat schema (covers both direct and group chats)
+export const ChatSchema = z.object({
   id: z.string(), // Firestore doc id
   name: z.string().min(1),
-  // both 1:1 and groups use participants array of user ids
-  participants: z.array(z.string()).min(2),
+  participants: z.array(z.string()).min(2), // array of user UIDs
   type: z.enum(['direct', 'group']).default('direct'),
   createdBy: z.string(),
   createdAt: z.any().optional(), // Firestore Timestamp
@@ -14,4 +14,4 @@ export const GroupSchema = z.object({
   avatar: z.string().url().optional(),
 });
 
-export type Group = z.infer<typeof GroupSchema>;
+export type Chat = z.infer<typeof ChatSchema>;

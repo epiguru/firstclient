@@ -39,6 +39,9 @@
           }
         }
       ]
-    ]
+    ],
+    "extra": {
+      "emulatorsEnabledInDev": true
+    }
   }
 }

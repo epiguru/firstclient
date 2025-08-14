@@ -1,7 +1,7 @@
 import auth, { FirebaseAuthTypes } from "@react-native-firebase/auth";
 import firestore from "@react-native-firebase/firestore";
 import React, { createContext, useContext, useEffect, useState } from "react";
-import { db } from "../firebase/config";
+import { firestore_instance } from "../firebase/config";
 
 interface AuthContextType {
   user: FirebaseAuthTypes.User | null;
@@ -40,7 +40,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     try {
       const cred = await auth().createUserWithEmailAndPassword(email, password);
       // Create a corresponding user document
-      await db.collection("users").doc(cred.user.uid).set({
+      await firestore_instance.collection("users").doc(cred.user.uid).set({
         email,
         createdAt: firestore.FieldValue.serverTimestamp(),
       });
