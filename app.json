@@ -14,7 +14,7 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.michaeldawson.ena-chat",
+      "bundleIdentifier": "com.ena-chat.ena-chat",
       "googleServicesFile": "./GoogleService-Info.plist"
     },
     "android": {

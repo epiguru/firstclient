@@ -6,7 +6,7 @@ export default function TabsLayout() {
   return (
     <Tabs screenOptions={{ headerShown: true }}>
       <Tabs.Screen
-        name="chat"
+        name="chat/index"
         options={{
           title: 'Chats',
           tabBarLabel: 'Chats',
@@ -17,7 +17,7 @@ export default function TabsLayout() {
         }}
       />
       <Tabs.Screen
-        name="settings"
+        name="settings/index"
         options={{
           title: 'Settings',
           tabBarLabel: 'Settings',

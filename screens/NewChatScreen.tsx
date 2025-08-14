@@ -8,8 +8,8 @@ import {
   where,
 } from "firebase/firestore";
 import React, { useEffect, useState } from "react";
-import { FlatList, StyleSheet, TouchableOpacity, View } from "react-native";
-import { Button, RadioButton, Text, TextInput } from "react-native-paper";
+import { FlatList, StyleSheet, TouchableOpacity, View, TextInput } from "react-native";
+import { Button, Text, XStack } from "tamagui";
 import { db } from "../firebase/config";
 import { useAuth } from "../contexts/AuthContext";
 
@@ -94,27 +94,20 @@ const NewChatScreen = ({ navigation }: any) => {
 
   return (
     <View style={styles.container}>
-      <RadioButton.Group
-        onValueChange={(v) => setMode(v as any)}
-        value={mode}
-      >
-        <View style={styles.modeRow}>
-          <RadioButton value="direct" />
-          <Text>Direct</Text>
-          <View style={{ width: 20 }} />
-          <RadioButton value="group" />
-          <Text>Group</Text>
-        </View>
-      </RadioButton.Group>
+      <XStack style={styles.modeRow}>
+        <Button onPress={() => setMode("direct")}>Direct</Button>
+        <View style={{ width: 20 }} />
+        <Button onPress={() => setMode("group")}>Group</Button>
+      </XStack>
       <TextInput
-        label="Chat Name"
+        placeholder="Chat Name"
         value={chatName}
         onChangeText={setChatName}
         style={styles.input}
-        disabled={mode === "direct"}
+        editable={mode !== "direct"}
       />
       <TextInput
-        label="Search users"
+        placeholder="Search users"
         value={search}
         onChangeText={setSearch}
         style={styles.input}
@@ -143,7 +136,6 @@ const NewChatScreen = ({ navigation }: any) => {
         )}
       />
       <Button
-        mode="contained"
         onPress={handleCreateChat}
         style={styles.createButton}
         disabled={

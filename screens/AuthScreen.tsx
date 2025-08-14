@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { View, StyleSheet } from 'react-native';
-import { TextInput, Button, Text } from 'react-native-paper';
+import { View, StyleSheet, TextInput } from 'react-native';
+import { Button, Text } from 'tamagui';
 import { useAuth } from '../contexts/AuthContext';
 
 const AuthScreen = () => {
@@ -22,33 +22,18 @@ const AuthScreen = () => {
 
   return (
     <View style={styles.container}>
-      <TextInput
-        label="Email"
-        value={email}
-        onChangeText={setEmail}
-        mode="outlined"
-        style={styles.input}
-      />
-      <TextInput
-        label="Password"
-        value={password}
-        onChangeText={setPassword}
-        mode="outlined"
-        secureTextEntry
-        style={styles.input}
-      />
+      <TextInput placeholder="Email" value={email} onChangeText={setEmail} style={styles.input} />
+      <TextInput placeholder="Password" value={password} onChangeText={setPassword} secureTextEntry style={styles.input} />
       <Button
-        mode="contained"
         onPress={handleSignIn}
-        loading={isLoading}
+        disabled={isLoading}
         style={styles.button}
       >
         Sign In
       </Button>
       <Button
-        mode="outlined"
         onPress={handleSignUp}
-        loading={isLoading}
+        disabled={isLoading}
         style={styles.button}
       >
         Sign Up

@@ -1,7 +1,8 @@
 import { Stack, useRouter, useSegments } from "expo-router";
 import React, { useEffect } from "react";
 import "react-native-gesture-handler";
-import { Provider as PaperProvider } from "react-native-paper";
+import { TamaguiProvider, Theme } from "tamagui";
+import config from "../tamagui.config";
 import { AuthProvider, useAuth } from "../contexts/AuthContext";
 
 function AuthGate({ children }: { children: React.ReactNode }) {
@@ -24,17 +25,19 @@ function AuthGate({ children }: { children: React.ReactNode }) {
 
 export default function RootLayout() {
   return (
-    <PaperProvider>
-      <AuthProvider>
-        <AuthGate>
-          <Stack>
-            <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-            <Stack.Screen name="chat/[chatId]" options={{ title: "Chat" }} />
-            <Stack.Screen name="new" options={{ title: "New Chat" }} />
-            <Stack.Screen name="auth" options={{ headerShown: false }} />
-          </Stack>
-        </AuthGate>
-      </AuthProvider>
-    </PaperProvider>
+    <TamaguiProvider config={config}>
+      <Theme name="light">
+        <AuthProvider>
+          <AuthGate>
+            <Stack>
+              <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+              <Stack.Screen name="chat/[chatId]" options={{ title: "Chat" }} />
+              <Stack.Screen name="new" options={{ title: "New Chat" }} />
+              <Stack.Screen name="auth" options={{ headerShown: false }} />
+            </Stack>
+          </AuthGate>
+        </AuthProvider>
+      </Theme>
+    </TamaguiProvider>
   );
 }

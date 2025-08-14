@@ -1,12 +1,10 @@
-import firestore, {
-  FirebaseFirestoreTypes,
-} from "@react-native-firebase/firestore";
+import firestore, { FirebaseFirestoreTypes } from "@react-native-firebase/firestore";
 import { useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
-import { FlatList, StyleSheet, TouchableOpacity, View } from "react-native";
-import { Button, RadioButton, Text, TextInput } from "react-native-paper";
-import { useAuth } from "../contexts/AuthContext";
-import { db, firestore_instance } from "../firebase/config";
+import { StyleSheet, TouchableOpacity } from "react-native";
+import { useAuth } from "../../contexts/AuthContext";
+import { firestore_instance } from "../../firebase/config";
+import { YStack, XStack, Input, Button, Text, ScrollView, Separator, Card } from "tamagui";
 
 interface User {
   id: string;
@@ -51,7 +49,7 @@ export default function NewChatRoute() {
         const otherId = selectedUsers[0];
         const ids = [String(user?.uid), otherId].sort();
         const directKey = ids.join(":");
-        const snap = await db
+        const snap = await firestore_instance
           .collection("chats")
           .where("type", "==", "direct")
           .where("directKey", "==", directKey)
@@ -99,56 +97,68 @@ export default function NewChatRoute() {
   };
 
   return (
-    <View style={styles.container}>
-      <RadioButton.Group onValueChange={(v) => setMode(v as any)} value={mode}>
-        <View style={styles.modeRow}>
-          <RadioButton value="direct" />
-          <Text>Direct</Text>
-          <View style={{ width: 20 }} />
-          <RadioButton value="group" />
-          <Text>Group</Text>
-        </View>
-      </RadioButton.Group>
-      <TextInput
-        label="Chat Name"
+    <YStack f={1} p={12} space>
+      <XStack ai="center" jc="flex-start" space>
+        <Button
+          size="$3"
+          theme={mode === "direct" ? "active" : null as any}
+          onPress={() => setMode("direct")}
+        >
+          Direct
+        </Button>
+        <Button
+          size="$3"
+          theme={mode === "group" ? "active" : null as any}
+          onPress={() => setMode("group")}
+        >
+          Group
+        </Button>
+      </XStack>
+
+      <Input
+        placeholder="Chat Name"
         value={chatName}
         onChangeText={setChatName}
-        style={styles.input}
         disabled={mode === "direct"}
       />
-      <TextInput
-        label="Search users"
+
+      <Input
+        placeholder="Search users"
         value={search}
         onChangeText={setSearch}
-        style={styles.input}
       />
-      <FlatList
-        data={filtered}
-        keyExtractor={(item) => item.id}
-        renderItem={({ item }) => (
-          <TouchableOpacity
-            style={[
-              styles.userCard,
-              selectedUsers.includes(item.id) && styles.selectedCard,
-            ]}
-            onPress={() => {
-              setSelectedUsers((prev) =>
-                mode === "direct"
-                  ? [item.id]
-                  : prev.includes(item.id)
-                  ? prev.filter((id) => id !== item.id)
-                  : [...prev, item.id]
-              );
-            }}
-          >
-            <Text>{item.email}</Text>
-          </TouchableOpacity>
-        )}
-      />
+
+      <ScrollView style={{ flex: 1 }}>
+        <YStack space>
+          {filtered.map((item) => {
+            const selected = selectedUsers.includes(item.id);
+            return (
+              <Card
+                key={item.id}
+                elevate={selected}
+                bordered
+                onPress={() => {
+                  setSelectedUsers((prev) =>
+                    mode === "direct"
+                      ? [item.id]
+                      : prev.includes(item.id)
+                      ? prev.filter((id) => id !== item.id)
+                      : [...prev, item.id]
+                  );
+                }}
+              >
+                <XStack p="$3" ai="center" jc="space-between">
+                  <Text>{item.email}</Text>
+                  {selected ? <Text>✓</Text> : null}
+                </XStack>
+              </Card>
+            );
+          })}
+        </YStack>
+      </ScrollView>
+
       <Button
-        mode="contained"
         onPress={handleCreate}
-        style={styles.createButton}
         disabled={
           mode === "direct"
             ? selectedUsers.length !== 1
@@ -157,15 +167,8 @@ export default function NewChatRoute() {
       >
         {mode === "direct" ? "Start Direct Chat" : "Create Group Chat"}
       </Button>
-    </View>
+    </YStack>
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, padding: 10 },
-  modeRow: { flexDirection: "row", alignItems: "center", marginBottom: 10 },
-  input: { marginBottom: 10 },
-  userCard: { padding: 10, borderBottomWidth: 1, borderBottomColor: "#eee" },
-  selectedCard: { backgroundColor: "#f0f8ff" },
-  createButton: { marginTop: 10 },
-});
+const styles = StyleSheet.create({});

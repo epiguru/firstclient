@@ -1,14 +1,14 @@
 import React from 'react';
 import { View, StyleSheet } from 'react-native';
-import { Button, Text } from 'react-native-paper';
+import { Button, Text } from 'tamagui';
 import { useAuth } from '../../../contexts/AuthContext';
 
 export default function SettingsRoute() {
   const { signOut, user } = useAuth();
   return (
     <View style={styles.container}>
-      <Text variant="titleMedium">Signed in as {user?.email}</Text>
-      <Button mode="outlined" onPress={signOut} style={{ marginTop: 16 }}>
+      <Text>Signed in as {user?.email}</Text>
+      <Button onPress={signOut} style={{ marginTop: 16 }}>
         Sign Out
       </Button>
     </View>

@@ -1,9 +1,9 @@
 import firestore, { FirebaseFirestoreTypes } from '@react-native-firebase/firestore';
-import React, { useEffect, useMemo, useState } from 'react';
-import { FlatList, StyleSheet, View } from 'react-native';
-import { Button, Card, Text } from 'react-native-paper';
+import React, { useEffect, useState } from 'react';
+import { StyleSheet } from 'react-native';
 import { useAuth } from '../../../contexts/AuthContext';
 import { useRouter } from 'expo-router';
+import { YStack, Button, Card, Text, XStack, ScrollView } from 'tamagui';
 
 interface Chat {
   id: string;
@@ -34,43 +34,31 @@ export default function ChatListRoute() {
     return () => unsubscribe();
   }, [user?.uid]);
 
-  const onNewChat = () => router.push('/new');
+  const onNewChat = () => router.push('/chat/new');
   const onOpenChat = (chat: Chat) => router.push({ pathname: '/chat/[chatId]', params: { chatId: chat.id, chatName: chat.name } });
 
   return (
-    <View style={styles.container}>
-      <Button mode="contained" onPress={onNewChat} style={styles.newChatButton}>
-        New Chat
-      </Button>
-      <FlatList
-        data={chats}
-        keyExtractor={(item) => item.id}
-        renderItem={({ item }) => (
-          <Card style={styles.chatCard} onPress={() => onOpenChat(item)}>
-            <Card.Content>
-              <Text variant="titleLarge">{item.name}</Text>
-              {item.lastMessage && (
-                <Text variant="bodyMedium" style={styles.lastMessage}>
-                  {item.lastMessage}
-                </Text>
-              )}
-              {item.lastMessageTime && (
-                <Text variant="bodySmall" style={styles.time}>
-                  {item.lastMessageTime}
-                </Text>
-              )}
-            </Card.Content>
-          </Card>
-        )}
-      />
-    </View>
+    <YStack f={1} p={12} space>
+      <Button onPress={onNewChat}>New Chat</Button>
+      <ScrollView style={{ flex: 1 }}>
+        <YStack space>
+          {chats.map((item) => (
+            <Card key={item.id} bordered onPress={() => onOpenChat(item)}>
+              <YStack p="$3" space={4}>
+                <Text fontWeight="700">{item.name}</Text>
+                {item.lastMessage ? (
+                  <Text color="$gray10">{item.lastMessage}</Text>
+                ) : null}
+                {item.lastMessageTime ? (
+                  <Text color="$gray9" fontSize={12}>{item.lastMessageTime}</Text>
+                ) : null}
+              </YStack>
+            </Card>
+          ))}
+        </YStack>
+      </ScrollView>
+    </YStack>
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, padding: 10 },
-  newChatButton: { marginBottom: 10 },
-  chatCard: { marginBottom: 10 },
-  lastMessage: { color: '#666' },
-  time: { color: '#999' },
-});
+const styles = StyleSheet.create({});
