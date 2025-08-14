@@ -1,16 +1,10 @@
-import {
-  User,
-  createUserWithEmailAndPassword,
-  signOut as fbSignOut,
-  onAuthStateChanged,
-  signInWithEmailAndPassword,
-} from "firebase/auth";
-import { doc, setDoc } from "firebase/firestore";
+import auth, { FirebaseAuthTypes } from "@react-native-firebase/auth";
+import firestore from "@react-native-firebase/firestore";
 import React, { createContext, useContext, useEffect, useState } from "react";
-import { auth, db } from "../firebase/config";
+import { db } from "../firebase/config";
 
 interface AuthContextType {
-  user: User | null;
+  user: FirebaseAuthTypes.User | null;
   isLoading: boolean;
   signIn: (email: string, password: string) => Promise<void>;
   signUp: (email: string, password: string) => Promise<void>;
@@ -22,11 +16,11 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   children,
 }) => {
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<FirebaseAuthTypes.User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (u) => {
+    const unsubscribe = auth().onAuthStateChanged((u) => {
       setUser(u);
       setIsLoading(false);
     });
@@ -35,7 +29,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 
   const signIn = async (email: string, password: string) => {
     try {
-      await signInWithEmailAndPassword(auth, email, password);
+      await auth().signInWithEmailAndPassword(email, password);
     } catch (error) {
       console.error("Error signing in:", error);
       throw error;
@@ -44,11 +38,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 
   const signUp = async (email: string, password: string) => {
     try {
-      const cred = await createUserWithEmailAndPassword(auth, email, password);
+      const cred = await auth().createUserWithEmailAndPassword(email, password);
       // Create a corresponding user document
-      await setDoc(doc(db, "users", cred.user.uid), {
+      await db.collection("users").doc(cred.user.uid).set({
         email,
-        createdAt: new Date(),
+        createdAt: firestore.FieldValue.serverTimestamp(),
       });
     } catch (error) {
       console.error("Error signing up:", error);
@@ -58,7 +52,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 
   const signOut = async () => {
     try {
-      await fbSignOut(auth);
+      await auth().signOut();
     } catch (error) {
       console.error("Error signing out:", error);
       throw error;

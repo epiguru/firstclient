@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { View, FlatList, TouchableOpacity, StyleSheet } from 'react-native';
 import { Button, RadioButton, Text, TextInput } from 'react-native-paper';
 import { useRouter } from 'expo-router';
-import { collection, getDocs, onSnapshot, query, serverTimestamp, where, addDoc } from 'firebase/firestore';
+import firestore, { FirebaseFirestoreTypes } from '@react-native-firebase/firestore';
 import { db } from '../firebase/config';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -18,13 +18,16 @@ export default function NewChatRoute() {
   const [mode, setMode] = useState<'direct' | 'group'>('direct');
 
   useEffect(() => {
-    const qy = query(collection(db, 'users'), where('id', '!=', user?.uid));
-    const unsub = onSnapshot(qy, (snap) => {
-      const usersData = snap.docs
-        .map((d) => ({ id: String(d.id), ...(d.data() as Partial<User>) }))
+    const unsub = db
+      .collection('users')
+      // Note: Firestore does not support '!=' for document ID via simple where; we fetch all and filter client-side if needed
+      .onSnapshot((snap: FirebaseFirestoreTypes.QuerySnapshot) => {
+        const usersData = snap.docs
+        .map((d: FirebaseFirestoreTypes.QueryDocumentSnapshot) => ({ id: String(d.id), ...(d.data() as Partial<User>) }))
         .filter((u): u is User => typeof u.email === 'string');
-      setUsers(usersData);
-    });
+        const filtered = usersData.filter((u) => u.id !== String(user?.uid));
+        setUsers(filtered);
+      });
     return () => unsub();
   }, [user?.uid]);
 
@@ -37,30 +40,33 @@ export default function NewChatRoute() {
         const otherId = selectedUsers[0];
         const ids = [String(user?.uid), otherId].sort();
         const directKey = ids.join(':');
-        const existingQ = query(collection(db, 'chats'), where('type', '==', 'direct'), where('directKey', '==', directKey));
-        const snap = await getDocs(existingQ);
+        const snap = await db
+          .collection('chats')
+          .where('type', '==', 'direct')
+          .where('directKey', '==', directKey)
+          .get();
         if (!snap.empty) {
           const doc = snap.docs[0];
-          router.push({ pathname: '/chat/[chatId]', params: { chatId: doc.id, chatName: doc.data().name as string } });
+          router.push({ pathname: '/chat/[chatId]', params: { chatId: doc.id, chatName: (doc.data() as any).name as string } });
           return;
         }
         const other = users.find((u) => u.id === otherId);
         const name = other?.email ?? 'Direct Chat';
-        const chatRef = await addDoc(collection(db, 'chats'), {
+        const chatRef = await db.collection('chats').add({
           name,
           participants: [String(user?.uid), otherId],
           type: 'direct',
           directKey,
-          createdAt: serverTimestamp(),
+          createdAt: firestore.FieldValue.serverTimestamp(),
         });
         router.push({ pathname: '/chat/[chatId]', params: { chatId: chatRef.id, chatName: name } });
       } else {
         if (!chatName || selectedUsers.length === 0) return;
-        const chatRef = await addDoc(collection(db, 'chats'), {
+        const chatRef = await db.collection('chats').add({
           name: chatName,
           participants: [...selectedUsers, String(user?.uid)],
           type: 'group',
-          createdAt: serverTimestamp(),
+          createdAt: firestore.FieldValue.serverTimestamp(),
         });
         router.push({ pathname: '/chat/[chatId]', params: { chatId: chatRef.id, chatName } });
       }

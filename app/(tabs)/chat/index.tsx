@@ -1,8 +1,7 @@
-import { collection, onSnapshot, query, where } from 'firebase/firestore';
+import firestore, { FirebaseFirestoreTypes } from '@react-native-firebase/firestore';
 import React, { useEffect, useMemo, useState } from 'react';
 import { FlatList, StyleSheet, View } from 'react-native';
 import { Button, Card, Text } from 'react-native-paper';
-import { db } from '../../../firebase/config';
 import { useAuth } from '../../../contexts/AuthContext';
 import { useRouter } from 'expo-router';
 
@@ -21,18 +20,16 @@ export default function ChatListRoute() {
 
   useEffect(() => {
     if (!user?.uid) return;
-    const q = query(
-      collection(db, 'chats'),
-      where('participants', 'array-contains', user.uid)
-    );
-
-    const unsubscribe = onSnapshot(q, (querySnapshot) => {
-      const chatsData = querySnapshot.docs.map((doc) => ({
-        id: doc.id,
-        ...(doc.data() as Partial<Chat>),
-      })) as Chat[];
-      setChats(chatsData);
-    });
+    const unsubscribe = firestore()
+      .collection('chats')
+      .where('participants', 'array-contains', user.uid)
+      .onSnapshot((querySnapshot: FirebaseFirestoreTypes.QuerySnapshot) => {
+        const chatsData = querySnapshot.docs.map((doc: FirebaseFirestoreTypes.QueryDocumentSnapshot) => ({
+          id: doc.id,
+          ...(doc.data() as Partial<Chat>),
+        })) as Chat[];
+        setChats(chatsData);
+      });
 
     return () => unsubscribe();
   }, [user?.uid]);

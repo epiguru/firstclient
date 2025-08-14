@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useLocalSearchParams } from 'expo-router';
 import { StyleSheet, View } from 'react-native';
 import { GiftedChat } from 'react-native-gifted-chat';
-import { addDoc, collection, onSnapshot, orderBy, query, serverTimestamp } from 'firebase/firestore';
+import firestore, { FirebaseFirestoreTypes } from '@react-native-firebase/firestore';
 import { db } from '../../firebase/config';
 import { useAuth } from '../../contexts/AuthContext';
 
@@ -20,22 +20,30 @@ export default function ChatRoute() {
 
   useEffect(() => {
     if (!chatId) return;
-    const q = query(collection(db, 'chats', String(chatId), 'messages'), orderBy('createdAt', 'desc'));
-    const unsubscribe = onSnapshot(q, (querySnapshot) => {
-      const messagesData = querySnapshot.docs.map((doc) => ({ _id: doc.id, ...(doc.data() as any) }));
-      setMessages(messagesData as Message[]);
-    });
+    const unsubscribe = db
+      .collection('chats')
+      .doc(String(chatId))
+      .collection('messages')
+      .orderBy('createdAt', 'desc')
+      .onSnapshot((querySnapshot: FirebaseFirestoreTypes.QuerySnapshot) => {
+        const messagesData = querySnapshot.docs.map((doc: FirebaseFirestoreTypes.QueryDocumentSnapshot) => ({ _id: doc.id, ...(doc.data() as any) }));
+        setMessages(messagesData as Message[]);
+      });
     return () => unsubscribe();
   }, [chatId]);
 
   const onSend = async (newMessages: Message[]) => {
     const m = newMessages[0];
     try {
-      await addDoc(collection(db, 'chats', String(chatId), 'messages'), {
-        text: m.text,
-        createdAt: serverTimestamp(),
-        user: { _id: String(user?.uid), name: user?.email || 'Anonymous' },
-      });
+      await db
+        .collection('chats')
+        .doc(String(chatId))
+        .collection('messages')
+        .add({
+          text: m.text,
+          createdAt: firestore.FieldValue.serverTimestamp(),
+          user: { _id: String(user?.uid), name: user?.email || 'Anonymous' },
+        });
     } catch (e) {
       console.error('Error sending message:', e);
     }
