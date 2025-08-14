@@ -3,11 +3,11 @@ import React from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { Provider as PaperProvider } from 'react-native-paper';
-import { AuthProvider, useAuth } from './src/contexts/AuthContext';
-import AuthScreen from './src/screens/AuthScreen';
-import ChatListScreen from './src/screens/ChatListScreen';
-import ChatScreen from './src/screens/ChatScreen';
-import NewChatScreen from './src/screens/NewChatScreen';
+import { AuthProvider, useAuth } from './contexts/AuthContext';
+import AuthScreen from './screens/AuthScreen';
+import ChatListScreen from './screens/ChatListScreen';
+import ChatScreen from './screens/ChatScreen';
+import NewChatScreen from './screens/NewChatScreen';
 
 const Stack = createNativeStackNavigator();
 

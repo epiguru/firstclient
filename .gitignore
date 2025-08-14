@@ -10,13 +10,16 @@ web-build/
 expo-env.d.ts
 
 # Native
-.kotlin/
 *.orig.*
 *.jks
 *.p8
 *.p12
 *.key
 *.mobileprovision
+
+# Generated native directories
+/ios/
+/android/
 
 # Metro
 .metro-health-check*
@@ -35,3 +38,10 @@ yarn-error.*
 
 # typescript
 *.tsbuildinfo
+
+# Android and iOS builds
+*.apk
+*.ipa
+
+firebase-debug.log
+firestore-debug.log

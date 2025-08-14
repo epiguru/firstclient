@@ -1,9 +1,15 @@
-import React, { useState, useEffect } from 'react';
-import { View, StyleSheet } from 'react-native';
-import { GiftedChat } from 'react-native-gifted-chat';
-import { db } from '../firebase/config';
-import { collection, query, where, onSnapshot, addDoc, orderBy } from 'firebase/firestore';
-import { useAuth } from '../contexts/AuthContext';
+import {
+  addDoc,
+  collection,
+  onSnapshot,
+  orderBy,
+  query,
+} from "firebase/firestore";
+import React, { useEffect, useState } from "react";
+import { StyleSheet, View } from "react-native";
+import { GiftedChat } from "react-native-gifted-chat";
+import { db } from "../firebase/config";
+import { useAuth } from "../contexts/AuthContext";
 
 interface Message {
   _id: string;
@@ -22,8 +28,8 @@ const ChatScreen = ({ route, navigation }: any) => {
 
   useEffect(() => {
     const q = query(
-      collection(db, 'chats', chatId, 'messages'),
-      orderBy('createdAt', 'desc')
+      collection(db, "chats", chatId, "messages"),
+      orderBy("createdAt", "desc")
     );
 
     const unsubscribe = onSnapshot(q, (querySnapshot) => {
@@ -40,16 +46,16 @@ const ChatScreen = ({ route, navigation }: any) => {
   const onSend = async (newMessages: Message[]) => {
     const message = newMessages[0];
     try {
-      await addDoc(collection(db, 'chats', chatId, 'messages'), {
+      await addDoc(collection(db, "chats", chatId, "messages"), {
         text: message.text,
         createdAt: message.createdAt,
         user: {
           _id: user?.uid,
-          name: user?.email || 'Anonymous',
+          name: user?.email || "Anonymous",
         },
       });
     } catch (error) {
-      console.error('Error sending message:', error);
+      console.error("Error sending message:", error);
     }
   };
 
@@ -60,7 +66,7 @@ const ChatScreen = ({ route, navigation }: any) => {
         onSend={(messages) => onSend(messages)}
         user={{
           _id: user?.uid,
-          name: user?.email || 'Anonymous',
+          name: user?.email || "Anonymous",
         }}
         placeholder="Type a message..."
         alwaysShowSend
@@ -72,7 +78,7 @@ const ChatScreen = ({ route, navigation }: any) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: "#fff",
   },
 });
 
