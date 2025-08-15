@@ -31,6 +31,17 @@ export const MessageSchema = z.object({
   image: z.string().url().optional(),
   video: z.string().url().optional(),
   audio: z.string().url().optional(),
+  // Some clients (GiftedChat) persist an embedded user object
+  user: GiftedChatUserSchema.optional(),
+  // Moderation info written by backend
+  moderation: z
+    .object({
+      checked: z.boolean().optional(),
+      flagged: z.boolean().optional(),
+      reason: z.string().optional(),
+      flaggedAt: z.any().optional(), // Firestore Timestamp
+    })
+    .optional(),
 });
 
 export type Message = z.infer<typeof MessageSchema>;

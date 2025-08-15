@@ -15,10 +15,11 @@
     "@react-native-firebase/firestore": "^23.0.1",
     "@react-native-firebase/functions": "^23.0.1",
     "@react-native-firebase/storage": "^23.0.1",
-    "@tamagui/config": "1.132.19",
-    "@tamagui/core": "1.132.19",
-    "@tamagui/font-inter": "1.132.19",
-    "@tamagui/lucide-icons": "1.132.19",
+    "@tamagui/config": "1.129.4",
+    "@tamagui/web": "1.129.4",
+    "@tamagui/portal": "1.129.4",
+    "@tamagui/font-inter": "1.129.4",
+    "@tamagui/lucide-icons": "1.129.4",
     "expo": "~53.0.20",
     "expo-build-properties": "~0.14.8",
     "expo-dev-client": "~5.2.4",
@@ -33,11 +34,11 @@
     "react-native-safe-area-context": "5.4.0",
     "react-native-screens": "~4.11.1",
     "react-native-svg": "15.11.2",
-    "tamagui": "1.132.19"
+    "tamagui": "1.129.4"
   },
   "devDependencies": {
     "@babel/core": "^7.25.2",
-    "@tamagui/babel-plugin": "^1.132.19",
+    "@tamagui/babel-plugin": "1.129.4",
     "@types/react": "~19.0.10",
     "typescript": "~5.8.3"
   },

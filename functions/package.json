@@ -20,8 +20,8 @@
   },
   "devDependencies": {
     "firebase-functions-test": "^3.1.0",
-    "typescript": "^5.4.5",
-    "tsc-alias": "^1.8.10"
+    "tsc-alias": "^1.8.10",
+    "typescript": "^5.9.2"
   },
   "private": true
 }

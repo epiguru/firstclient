@@ -9,6 +9,8 @@
     "sourceMap": true,
     "strict": true,
     "target": "es2017",
+    "skipLibCheck": true,
+    "lib": ["ES2020", "DOM"],
     "baseUrl": ".",
     "paths": {
       "@shared/*": ["src/shared/*"]
