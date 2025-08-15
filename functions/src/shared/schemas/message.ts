@@ -60,3 +60,36 @@ export const toGiftedChatMessage = (m: Message) => ({
   video: m.video,
   audio: m.audio,
 });
+
+// Firestore converter for Message
+export const messageConverter = {
+  toFirestore(message: Partial<Message>) {
+    const { id, ...rest } = message as any;
+    return rest;
+  },
+  fromFirestore(snapshot: any, options: any): Message {
+    const d = snapshot.data(options) || {};
+    const tsToDate = (t: any) => (t && typeof t.toDate === 'function' ? t.toDate() : t);
+    return {
+      id: String(snapshot.id),
+      chatId: String(d.chatId ?? ''),
+      text: String(d.text ?? ''),
+      createdAt: tsToDate(d.createdAt),
+      userId: String(d.userId ?? d.user?._id ?? ''),
+      userName: d.userName ?? d.user?.name,
+      userAvatar: d.userAvatar ?? d.user?.avatar,
+      image: d.image,
+      video: d.video,
+      audio: d.audio,
+      user: d.user,
+      moderation: d.moderation
+        ? {
+            checked: d.moderation.checked,
+            flagged: d.moderation.flagged,
+            reason: d.moderation.reason,
+            flaggedAt: tsToDate(d.moderation.flaggedAt),
+          }
+        : undefined,
+    } as Message;
+  },
+} as const;

@@ -1,24 +1,29 @@
 import firestore from '@react-native-firebase/firestore';
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { StyleSheet } from 'react-native';
 import { useAuth } from '../../../contexts/AuthContext';
 import { useRouter } from 'expo-router';
 import { YStack, Card, Text, XStack, ScrollView } from 'tamagui';
-import { useQueryMap, mapChat, WithId } from '../../shared/firestore';
-
-type Chat = WithId<ReturnType<typeof mapChat>>;
+import { chatConverter, Chat } from '@shared/schemas/chat';
 
 export default function ChatListRoute() {
   const { user } = useAuth();
   const router = useRouter();
 
-  const chatsQuery = user?.uid
-    ? firestore()
-        .collection('chats')
-        .where('participants', 'array-contains', String(user.uid))
-        .orderBy('lastMessageTime', 'desc')
-    : undefined;
-  const { docs: chats } = useQueryMap(chatsQuery as any, mapChat, [user?.uid]);
+  const [chats, setChats] = useState<Chat[]>([]);
+
+  useEffect(() => {
+    if (!user?.uid) return;
+    const col = (firestore().collection('chats') as any).withConverter(chatConverter as any);
+    const q = (col as any)
+      .where('participants', 'array-contains', String(user.uid))
+      .orderBy('lastMessageTime', 'desc');
+    const unsub = (q as any).onSnapshot((snap: any) => {
+      const items = snap.docs.map((d: any) => ({ id: d.id, ...(d.data() as any) })) as Chat[];
+      setChats(items);
+    });
+    return () => unsub();
+  }, [user?.uid]);
 
   const onOpenChat = (chat: Chat) => router.push({ pathname: '/(tabs)/chat/[chatId]', params: { chatId: chat.id, chatName: chat.name } });
 

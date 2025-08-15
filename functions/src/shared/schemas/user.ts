@@ -28,3 +28,24 @@ export const toGiftedChatUser = (user: User): GiftedChatUser => ({
   name: user.name ?? user.displayName ?? undefined,
   avatar: user.photoURL ?? undefined,
 });
+
+// Firestore converter for User
+export const userConverter = {
+  toFirestore(user: Partial<User>) {
+    const { id, ...rest } = user as any;
+    return rest;
+  },
+  fromFirestore(snapshot: any, options: any): User {
+    const d = snapshot.data(options) || {};
+    const tsToDate = (t: any) => (t && typeof t.toDate === 'function' ? t.toDate() : t);
+    return {
+      id: String(snapshot.id),
+      email: String(d.email ?? ''),
+      displayName: d.displayName,
+      name: d.name,
+      photoURL: d.photoURL ?? null,
+      createdAt: tsToDate(d.createdAt),
+      updatedAt: tsToDate(d.updatedAt),
+    } as User;
+  },
+} as const;

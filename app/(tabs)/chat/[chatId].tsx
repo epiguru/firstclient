@@ -2,10 +2,10 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Stack, useLocalSearchParams } from 'expo-router';
 import { StyleSheet, View } from 'react-native';
 import { GiftedChat } from 'react-native-gifted-chat';
-import firestore, { FirebaseFirestoreTypes } from '@react-native-firebase/firestore';
+import firestore from '@react-native-firebase/firestore';
 import { useAuth } from '../../../contexts/AuthContext';
 import { XStack, Text } from 'tamagui';
-import { useQueryMap, mapMessage, addMessageDoc } from '../../shared/firestore';
+import { messageConverter, toGiftedChatMessage } from '@shared/schemas/message';
 
 interface Message {
   _id: string;
@@ -45,22 +45,20 @@ export default function ChatRoute() {
     };
   }, [chatId, chatName]);
 
-  // Subscribe to messages and map Timestamps -> Date
-  const messagesQuery = chatId
-    ? firestore()
-        .collection('chats')
-        .doc(String(chatId))
-        .collection('messages')
-        .orderBy('createdAt', 'desc')
-    : undefined;
-
-  const { docs: messageDocs } = useQueryMap<Message>(messagesQuery as any, mapMessage, [chatId]);
-
+  // Subscribe to messages using Firestore converter
   useEffect(() => {
-    if (!messageDocs) return;
-    // messageDocs already contain Message with proper Date typed createdAt
-    setMessages(messageDocs as unknown as Message[]);
-  }, [messageDocs]);
+    if (!chatId) return;
+    const col = (firestore()
+      .collection('chats')
+      .doc(String(chatId))
+      .collection('messages') as any).withConverter(messageConverter as any);
+    const q = (col as any).orderBy('createdAt', 'desc');
+    const unsub = (q as any).onSnapshot((snap: any) => {
+      const items = snap.docs.map((d: any) => toGiftedChatMessage(d.data()));
+      setMessages(items as any);
+    });
+    return () => unsub();
+  }, [chatId]);
 
   // Show a flash banner if the user's most recent message is flagged
   useEffect(() => {
@@ -78,11 +76,26 @@ export default function ChatRoute() {
   const onSend = async (newMessages: Message[]) => {
     const m = newMessages[0];
     try {
-      const chatsCol = firestore().collection('chats');
-      await addMessageDoc(chatsCol as any, String(chatId), {
+      const chatRef = firestore().collection('chats').doc(String(chatId));
+      // Add message
+      await chatRef.collection('messages').add({
         text: m.text,
-        user: { _id: String(user?.uid), name: user?.email || 'Anonymous' },
-      });
+        createdAt: firestore.FieldValue.serverTimestamp(),
+        user: { _id: String(user?.uid), name: user?.displayName || user?.email || 'Anonymous' },
+        userId: String(user?.uid),
+        userName: user?.displayName || user?.email || 'Anonymous',
+      } as any);
+      // Update last message preview on chat
+      await chatRef.set(
+        {
+          lastMessage: m.text,
+          lastMessageTime: firestore.FieldValue.serverTimestamp(),
+          lastMessageUserId: String(user?.uid),
+          lastMessageUserName: user?.displayName || user?.email || 'Anonymous',
+          updatedAt: firestore.FieldValue.serverTimestamp(),
+        } as any,
+        { merge: true }
+      );
     } catch (e) {
       console.error('Error sending message:', e);
     }
