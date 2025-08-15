@@ -1,10 +1,15 @@
-import firestore, { FirebaseFirestoreTypes } from "@react-native-firebase/firestore";
+import firestore, {
+  FirebaseFirestoreTypes,
+} from "@react-native-firebase/firestore";
 import { useRouter } from "expo-router";
+import { Formik } from "formik";
 import React, { useEffect, useState } from "react";
-import { StyleSheet, TouchableOpacity } from "react-native";
+import { StyleSheet } from "react-native";
+import { Button, Card, Input, ScrollView, Text, XStack, YStack } from "tamagui";
+import { z } from "zod";
+import { toFormikValidationSchema } from "zod-formik-adapter";
 import { useAuth } from "../../contexts/AuthContext";
 import { firestore_instance } from "../../firebase/config";
-import { YStack, XStack, Input, Button, Text, ScrollView, Separator, Card } from "tamagui";
 
 interface User {
   id: string;
@@ -17,9 +22,7 @@ export default function NewChatRoute() {
   const router = useRouter();
   const [search, setSearch] = useState("");
   const [users, setUsers] = useState<User[]>([]);
-  const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
-  const [chatName, setChatName] = useState("");
-  const [mode, setMode] = useState<"direct" | "group">("direct");
+  // Formik will manage: mode, chatName, selectedUsers
 
   useEffect(() => {
     const unsub = firestore_instance
@@ -42,131 +45,183 @@ export default function NewChatRoute() {
     u.email.toLowerCase().includes(search.toLowerCase())
   );
 
-  const handleCreate = async () => {
-    try {
-      if (mode === "direct") {
-        if (selectedUsers.length !== 1) return;
-        const otherId = selectedUsers[0];
-        const ids = [String(user?.uid), otherId].sort();
-        const directKey = ids.join(":");
-        const snap = await firestore_instance
-          .collection("chats")
-          .where("type", "==", "direct")
-          .where("directKey", "==", directKey)
-          .get();
-        if (!snap.empty) {
-          const doc = snap.docs[0];
-          router.push({
-            pathname: "/chat/[chatId]",
-            params: {
-              chatId: doc.id,
-              chatName: (doc.data() as any).name as string,
-            },
-          });
-          return;
-        }
-        const other = users.find((u) => u.id === otherId);
-        const name = other?.email ?? "Direct Chat";
-        const chatRef = await firestore_instance.collection("chats").add({
-          name,
-          participants: [String(user?.uid), otherId],
-          type: "direct",
-          directKey,
-          createdAt: firestore.FieldValue.serverTimestamp(),
-        });
-        router.push({
-          pathname: "/chat/[chatId]",
-          params: { chatId: chatRef.id, chatName: name },
-        });
-      } else {
-        if (!chatName || selectedUsers.length === 0) return;
-        const chatRef = await firestore_instance.collection("chats").add({
-          name: chatName,
-          participants: [...selectedUsers, String(user?.uid)],
-          type: "group",
-          createdAt: firestore.FieldValue.serverTimestamp(),
-        });
-        router.push({
-          pathname: "/chat/[chatId]",
-          params: { chatId: chatRef.id, chatName },
-        });
-      }
-    } catch (e) {
-      console.error("Error creating chat:", e);
-    }
-  };
+  // Zod schema: discriminated union on mode
+  const formSchema = z.discriminatedUnion("mode", [
+    z.object({
+      mode: z.literal("direct"),
+      chatName: z.string().optional().or(z.literal("")),
+      selectedUsers: z.array(z.string()).length(1, "Select exactly one user"),
+    }),
+    z.object({
+      mode: z.literal("group"),
+      chatName: z.string().min(1, "Group name is required"),
+      selectedUsers: z.array(z.string()).min(1, "Select at least one user"),
+    }),
+  ]);
 
   return (
-    <YStack f={1} p={12} space>
-      <XStack ai="center" jc="flex-start" space>
-        <Button
-          size="$3"
-          theme={mode === "direct" ? "active" : null as any}
-          onPress={() => setMode("direct")}
-        >
-          Direct
-        </Button>
-        <Button
-          size="$3"
-          theme={mode === "group" ? "active" : null as any}
-          onPress={() => setMode("group")}
-        >
-          Group
-        </Button>
-      </XStack>
-
-      <Input
-        placeholder="Chat Name"
-        value={chatName}
-        onChangeText={setChatName}
-        disabled={mode === "direct"}
-      />
-
-      <Input
-        placeholder="Search users"
-        value={search}
-        onChangeText={setSearch}
-      />
-
-      <ScrollView style={{ flex: 1 }}>
-        <YStack space>
-          {filtered.map((item) => {
-            const selected = selectedUsers.includes(item.id);
-            return (
-              <Card
-                key={item.id}
-                elevate={selected}
-                bordered
-                onPress={() => {
-                  setSelectedUsers((prev) =>
-                    mode === "direct"
-                      ? [item.id]
-                      : prev.includes(item.id)
-                      ? prev.filter((id) => id !== item.id)
-                      : [...prev, item.id]
-                  );
-                }}
-              >
-                <XStack p="$3" ai="center" jc="space-between">
-                  <Text>{item.email}</Text>
-                  {selected ? <Text>✓</Text> : null}
-                </XStack>
-              </Card>
-            );
-          })}
-        </YStack>
-      </ScrollView>
-
-      <Button
-        onPress={handleCreate}
-        disabled={
-          mode === "direct"
-            ? selectedUsers.length !== 1
-            : !chatName || selectedUsers.length === 0
-        }
+    <YStack flex={1} p={12} space>
+      <Formik
+        initialValues={{
+          mode: "direct" as "direct" | "group",
+          chatName: "",
+          selectedUsers: [] as string[],
+        }}
+        validationSchema={toFormikValidationSchema(formSchema)}
+        onSubmit={async (values, { setSubmitting }) => {
+          try {
+            if (values.mode === "direct") {
+              const otherId = values.selectedUsers[0];
+              const ids = [String(user?.uid), otherId].sort();
+              const directKey = ids.join(":");
+              const snap = await firestore_instance
+                .collection("chats")
+                .where("type", "==", "direct")
+                .where("directKey", "==", directKey)
+                .get();
+              if (!snap.empty) {
+                const doc = snap.docs[0];
+                router.push({
+                  pathname: "/chat/[chatId]",
+                  params: {
+                    chatId: doc.id,
+                    chatName: (doc.data() as any).name as string,
+                  },
+                });
+                return;
+              }
+              const other = users.find((u) => u.id === otherId);
+              const name = other?.email ?? "Direct Chat";
+              const chatRef = await firestore_instance.collection("chats").add({
+                name,
+                participants: [String(user?.uid), otherId],
+                type: "direct",
+                directKey,
+                createdAt: firestore.FieldValue.serverTimestamp(),
+              });
+              router.push({
+                pathname: "/chat/[chatId]",
+                params: { chatId: chatRef.id, chatName: name },
+              });
+            } else {
+              const chatRef = await firestore_instance.collection("chats").add({
+                name: values.chatName,
+                participants: [...values.selectedUsers, String(user?.uid)],
+                type: "group",
+                createdAt: firestore.FieldValue.serverTimestamp(),
+              });
+              router.push({
+                pathname: "/chat/[chatId]",
+                params: { chatId: chatRef.id, chatName: values.chatName },
+              });
+            }
+          } catch (e) {
+            console.error("Error creating chat:", e);
+          } finally {
+            setSubmitting(false);
+          }
+        }}
       >
-        {mode === "direct" ? "Start Direct Chat" : "Create Group Chat"}
-      </Button>
+        {({
+          values,
+          errors,
+          touched,
+          setFieldValue,
+          handleChange,
+          handleSubmit,
+          isSubmitting,
+        }) => {
+          const isDirect = values.mode === "direct";
+          return (
+            <>
+              <XStack ai="center" jc="flex-start" space>
+                <Button
+                  size="$3"
+                  theme={isDirect ? "active" : (null as any)}
+                  onPress={() => setFieldValue("mode", "direct")}
+                >
+                  Direct
+                </Button>
+                <Button
+                  size="$3"
+                  theme={!isDirect ? "active" : (null as any)}
+                  onPress={() => setFieldValue("mode", "group")}
+                >
+                  Group
+                </Button>
+              </XStack>
+
+              {isDirect ? null : (
+                <Input
+                  placeholder="Chat Name"
+                  value={values.chatName}
+                  onChangeText={handleChange("chatName")}
+                  disabled={isDirect}
+                />
+              )}
+              {touched.chatName && typeof errors.chatName === "string" ? (
+                <Text color="$red10">{errors.chatName}</Text>
+              ) : null}
+
+              <Input
+                placeholder="Search users"
+                value={search}
+                onChangeText={setSearch}
+              />
+
+              <ScrollView style={{ flex: 1 }}>
+                <YStack space>
+                  {filtered.map((item) => {
+                    const selected = values.selectedUsers.includes(item.id);
+                    return (
+                      <Card
+                        key={item.id}
+                        elevate={selected}
+                        bordered
+                        onPress={() => {
+                          if (isDirect) {
+                            setFieldValue("selectedUsers", [item.id]);
+                          } else {
+                            const prev = values.selectedUsers;
+                            setFieldValue(
+                              "selectedUsers",
+                              prev.includes(item.id)
+                                ? prev.filter((id) => id !== item.id)
+                                : [...prev, item.id]
+                            );
+                          }
+                        }}
+                      >
+                        <XStack p="$3" ai="center" jc="space-between">
+                          <Text>{item.email}</Text>
+                          {selected ? <Text>✓</Text> : null}
+                        </XStack>
+                      </Card>
+                    );
+                  })}
+                </YStack>
+              </ScrollView>
+
+              {typeof errors.selectedUsers === "string" ? (
+                <Text color="$red10">{errors.selectedUsers}</Text>
+              ) : null}
+
+              <Button
+                onPress={() => handleSubmit()}
+                disabled={
+                  isSubmitting ||
+                  (isDirect
+                    ? values.selectedUsers.length !== 1
+                    : values.chatName.length === 0 ||
+                      values.selectedUsers.length === 0)
+                }
+              >
+                {isDirect ? "Start Direct Chat" : "Create Group Chat"}
+              </Button>
+            </>
+          );
+        }}
+      </Formik>
     </YStack>
   );
 }

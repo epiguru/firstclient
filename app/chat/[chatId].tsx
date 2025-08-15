@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { useLocalSearchParams } from 'expo-router';
+import { Stack, useLocalSearchParams } from 'expo-router';
 import { StyleSheet, View } from 'react-native';
 import { GiftedChat } from 'react-native-gifted-chat';
 import firestore, { FirebaseFirestoreTypes } from '@react-native-firebase/firestore';
@@ -15,11 +15,34 @@ interface Message {
 }
 
 export default function ChatRoute() {
-  const { chatId } = useLocalSearchParams<{ chatId: string }>();
+  const { chatId, chatName } = useLocalSearchParams<{ chatId: string; chatName?: string }>();
   const { user } = useAuth();
   const [messages, setMessages] = useState<Message[]>([]);
   const [flash, setFlash] = useState<{ visible: boolean; reason?: string } | null>(null);
   const warnedIdsRef = useRef<Set<string>>(new Set());
+  const [title, setTitle] = useState<string>(chatName || 'Chat');
+
+  // Ensure the header title reflects the chat name. Prefer param, fallback to Firestore.
+  useEffect(() => {
+    if (chatName) {
+      setTitle(chatName);
+      return;
+    }
+    if (!chatId) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const doc = await firestore().collection('chats').doc(String(chatId)).get();
+        const data = doc.data() as any;
+        if (!cancelled && data?.name) setTitle(String(data.name));
+      } catch (e) {
+        // noop
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [chatId, chatName]);
 
   useEffect(() => {
     if (!chatId) return;
@@ -67,6 +90,7 @@ export default function ChatRoute() {
 
   return (
     <View style={styles.container}>
+      <Stack.Screen options={{ title }} />
       {flash?.visible ? (
         <XStack px={12} py={10} bg="#FFF4E5" borderBottomWidth={1} borderColor="#F0D2A6" ai="center" jc="center">
           <Text color="#8A4B0F" fontWeight="700">

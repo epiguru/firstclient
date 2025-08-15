@@ -41,7 +41,7 @@
       ]
     ],
     "extra": {
-      "emulatorsEnabledInDev": true
+      "emulatorsEnabledInDev": false
     }
   }
 }
