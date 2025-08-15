@@ -17,6 +17,17 @@ export default function TabsLayout() {
         }}
       />
       <Tabs.Screen
+        name="group/index"
+        options={{
+          title: 'Group',
+          tabBarLabel: 'Group',
+          tabBarIcon: ({ color, size }) => (
+            <MaterialIcons name="group" color={color} size={size} />
+          ),
+          headerTitle: 'Group',
+        }}
+      />
+      <Tabs.Screen
         name="settings/index"
         options={{
           title: 'Settings',
