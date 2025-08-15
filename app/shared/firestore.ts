@@ -19,6 +19,8 @@ export interface ChatDoc {
   updatedAt?: Date;
   lastMessage?: string;
   lastMessageTime?: Date;
+  lastMessageUserId?: string;
+  lastMessageUserName?: string;
 }
 
 export interface AppUserDoc {
@@ -26,6 +28,7 @@ export interface AppUserDoc {
   uid: string;
   email: string | null;
   displayName: string | null;
+  name?: string | null;
   photoURL: string | null;
   createdAt?: Date;
   updatedAt?: Date;
@@ -57,6 +60,8 @@ export const mapChat = (snapshot: FirebaseFirestoreTypes.QueryDocumentSnapshot):
     updatedAt: updated ? updated.toDate() : undefined,
     lastMessage: d.lastMessage,
     lastMessageTime: lastTs ? lastTs.toDate() : undefined,
+    lastMessageUserId: d.lastMessageUserId,
+    lastMessageUserName: d.lastMessageUserName,
   };
 };
 
@@ -69,6 +74,7 @@ export const mapUser = (snapshot: FirebaseFirestoreTypes.QueryDocumentSnapshot):
     uid: String(d.uid ?? snapshot.id),
     email: d.email ?? null,
     displayName: d.displayName ?? null,
+    name: d.name ?? d.displayName ?? null,
     photoURL: d.photoURL ?? null,
     createdAt: created ? created.toDate() : undefined,
     updatedAt: updated ? updated.toDate() : undefined,
@@ -110,12 +116,24 @@ export function useQueryMap<T>(
 
 // Helpers to write messages consistently (server timestamps etc.)
 export async function addMessageDoc(chatsCollection: FirebaseFirestoreTypes.CollectionReference, chatId: string, body: { text: string; user: { _id: string; name: string } }) {
-  await chatsCollection
-    .doc(chatId)
+  const chatRef = chatsCollection.doc(chatId);
+  await chatRef
     .collection('messages')
     .add({
       text: body.text,
       createdAt: firestore.FieldValue.serverTimestamp(),
       user: body.user,
     });
+
+  // Update chat document with last message preview
+  await chatRef.set(
+    {
+      lastMessage: body.text,
+      lastMessageTime: firestore.FieldValue.serverTimestamp(),
+      lastMessageUserId: body.user._id,
+      lastMessageUserName: body.user.name,
+      updatedAt: firestore.FieldValue.serverTimestamp(),
+    } as any,
+    { merge: true }
+  );
 }

@@ -7,7 +7,7 @@ interface AuthContextType {
   user: FirebaseAuthTypes.User | null;
   isLoading: boolean;
   signIn: (email: string, password: string) => Promise<void>;
-  signUp: (email: string, password: string) => Promise<void>;
+  signUp: (email: string, password: string, name?: string) => Promise<void>;
   signOut: () => Promise<void>;
 }
 
@@ -36,14 +36,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     }
   };
 
-  const signUp = async (email: string, password: string) => {
+  const signUp = async (email: string, password: string, name?: string) => {
     try {
       const cred = await auth().createUserWithEmailAndPassword(email, password);
+      if (name && name.trim()) {
+        await cred.user.updateProfile({ displayName: name.trim() });
+      }
       // Create a corresponding user document
       await firestore_instance.collection("users").doc(cred.user.uid).set({
+        uid: cred.user.uid,
         email,
+        displayName: name?.trim() || cred.user.displayName || null,
+        name: name?.trim() || cred.user.displayName || null,
+        photoURL: cred.user.photoURL || null,
         createdAt: firestore.FieldValue.serverTimestamp(),
-      });
+        updatedAt: firestore.FieldValue.serverTimestamp(),
+      }, { merge: true });
     } catch (error) {
       console.error("Error signing up:", error);
       throw error;

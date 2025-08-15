@@ -1,45 +1,38 @@
 import firestore from "@react-native-firebase/firestore";
 import React, { useEffect, useState } from "react";
 import { StyleSheet } from "react-native";
-import {
-  Card,
-  H2,
-  Paragraph,
-  ScrollView,
-  Separator,
-  Text,
-  YStack,
-} from "tamagui";
+import { Card, H2, Paragraph, ScrollView, Separator, Text, YStack, XStack } from "tamagui";
 import { useAuth } from "../../../contexts/AuthContext";
 
-interface GroupSummary {
-  id: string;
-  name: string;
-  participants: string[];
+interface GroupMemoryDoc {
+  goals?: string[];
+  purpose?: string;
+  risks?: string[];
 }
 
 export default function GroupTab() {
   const { user } = useAuth();
-  const [groups, setGroups] = useState<GroupSummary[]>([]);
+  const [memory, setMemory] = useState<GroupMemoryDoc | null>(null);
 
   useEffect(() => {
     if (!user?.uid) return;
+    // chats/general/__meta/groupMemory
     const unsub = firestore()
       .collection("chats")
-      .where("type", "==", "group")
-      .where("participants", "array-contains", String(user.uid))
-      .onSnapshot((snap) => {
-        const items = snap.docs.map((d) => ({
-          id: d.id,
-          ...(d.data() as any),
-        })) as any[];
-        setGroups(
-          items.map((g) => ({
-            id: g.id,
-            name: g.name ?? "Group",
-            participants: g.participants ?? [],
-          }))
-        );
+      .doc("general")
+      .collection("__meta")
+      .doc("groupMemory")
+      .onSnapshot((doc) => {
+        if (!doc.exists) {
+          setMemory(null);
+          return;
+        }
+        const d = doc.data() as any;
+        setMemory({
+          goals: Array.isArray(d?.goals) ? d.goals.map(String) : [],
+          purpose: d?.purpose ? String(d.purpose) : undefined,
+          risks: Array.isArray(d?.risks) ? d.risks.map(String) : [],
+        });
       });
     return () => unsub();
   }, [user?.uid]);
@@ -49,27 +42,46 @@ export default function GroupTab() {
       <YStack p={16} space>
         <H2>Group Memory & Alignment</H2>
         <Paragraph style={{ color: "#6b7280" }}>
-          View and manage shared context for your groups. This is a starter
-          screen – we can wire it to your preferred "memory/alignment" data
-          model next.
+          Shared context for the General group.
         </Paragraph>
         <Separator />
 
-        {groups.length === 0 ? (
-          <Text mt={8}>You have no group chats yet.</Text>
-        ) : (
-          groups.map((g) => (
-            <Card key={g.id} bordered elevate size="$4" p="$4" my="$2">
-              <YStack space>
-                <Text fontWeight="700">{g.name}</Text>
-                <Text style={{ color: "#6b7280" }}>Members: {g.participants.length}</Text>
-                <Separator />
-                <Text>Alignment: Coming soon</Text>
-                <Text>Memory: Coming soon</Text>
+        <Card bordered elevate size="$4" p="$4" my="$2">
+          <YStack space>
+            <Text fontWeight="700">Purpose</Text>
+            <Text>{memory?.purpose || "—"}</Text>
+            <Separator />
+
+            <Text fontWeight="700">Goals</Text>
+            {memory?.goals && memory.goals.length > 0 ? (
+              <YStack>
+                {memory.goals.map((g, idx) => (
+                  <XStack key={idx} space>
+                    <Text>•</Text>
+                    <Text>{g}</Text>
+                  </XStack>
+                ))}
               </YStack>
-            </Card>
-          ))
-        )}
+            ) : (
+              <Text>—</Text>
+            )}
+            <Separator />
+
+            <Text fontWeight="700">Risks</Text>
+            {memory?.risks && memory.risks.length > 0 ? (
+              <YStack>
+                {memory.risks.map((r, idx) => (
+                  <XStack key={idx} space>
+                    <Text>•</Text>
+                    <Text>{r}</Text>
+                  </XStack>
+                ))}
+              </YStack>
+            ) : (
+              <Text>—</Text>
+            )}
+          </YStack>
+        </Card>
       </YStack>
     </ScrollView>
   );

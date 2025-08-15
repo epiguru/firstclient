@@ -35,5 +35,22 @@ export function getModerationTools(): OpenAITool[] {
         },
       },
     },
+    {
+      type: 'function',
+      function: {
+        name: 'respondToChat',
+        description:
+          "Post a brief assistant response to the chat when appropriate. Use sparingly: only if the AI is addressed by name (e.g., 'Ena'), if an intervention would help group cohesion, or to concisely summarize key learnings/decisions after exploration. Do not over-respond.",
+        parameters: {
+          type: 'object',
+          properties: {
+            chatId: { type: 'string' },
+            messageId: { type: 'string', description: 'The current (latest) message id being processed' },
+            text: { type: 'string' },
+          },
+          required: ['chatId', 'messageId', 'text'],
+        },
+      },
+    },
   ];
 }
