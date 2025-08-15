@@ -34,12 +34,10 @@ export default function ChatListRoute() {
     return () => unsubscribe();
   }, [user?.uid]);
 
-  const onNewChat = () => router.push('/chat/new');
-  const onOpenChat = (chat: Chat) => router.push({ pathname: '/chat/[chatId]', params: { chatId: chat.id, chatName: chat.name } });
+  const onOpenChat = (chat: Chat) => router.push({ pathname: '/(tabs)/chat/[chatId]', params: { chatId: chat.id, chatName: chat.name } });
 
   return (
-    <YStack f={1} p={12} space>
-      <Button onPress={onNewChat}>New Chat</Button>
+    <YStack flex={1} p={12} space>
       <ScrollView style={{ flex: 1 }}>
         <YStack space>
           {chats.map((item) => (
@@ -47,10 +45,10 @@ export default function ChatListRoute() {
               <YStack p="$3" space={4}>
                 <Text fontWeight="700">{item.name}</Text>
                 {item.lastMessage ? (
-                  <Text color="$gray10">{item.lastMessage}</Text>
+                  <Text style={{ color: '#6b7280' }}>{item.lastMessage}</Text>
                 ) : null}
                 {item.lastMessageTime ? (
-                  <Text color="$gray9" fontSize={12}>{item.lastMessageTime}</Text>
+                  <Text style={{ color: '#9ca3af' }} fontSize={12}>{item.lastMessageTime}</Text>
                 ) : null}
               </YStack>
             </Card>

@@ -1,11 +1,11 @@
-import { admin } from '../init/firebase';
+import { db } from '../admin';
+import { FieldValue } from 'firebase-admin/firestore';
 import { chatJSON } from '../tools/openai';
 import { GroupMemory } from '@shared/schemas/memory';
 import * as logger from 'firebase-functions/logger';
 
 // Consolidate group memory by summarizing recent chat memory entries
 export async function consolidateGroupMemory(chatId: string) {
-  const db = admin.firestore();
   const memSnap = await db
     .collection('chats')
     .doc(chatId)
@@ -43,7 +43,7 @@ export async function consolidateGroupMemory(chatId: string) {
       ...parsed,
       sourceCount: memories.length,
       sources: memories.map((m) => m.id),
-      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+      updatedAt: FieldValue.serverTimestamp(),
     },
     { merge: true }
   );

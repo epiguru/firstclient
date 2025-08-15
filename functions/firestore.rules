@@ -1,0 +1,43 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isChatParticipant(chatId) {
+      return isSignedIn() &&
+             get(/databases/$(database)/documents/chats/$(chatId))
+               .data.participants.hasAny([request.auth.uid]);
+    }
+
+    // Chats collection
+    match /chats/{chatId} {
+      // Read chat if participant
+      allow read: if isChatParticipant(chatId);
+
+      // Optional: creation/update rules as you prefer
+      allow create: if false;
+      allow update, delete: if false;
+
+      // Messages subcollection
+      match /messages/{messageId} {
+        // Read messages if participant
+        allow read: if isChatParticipant(chatId);
+
+        // Create messages if participant and message.user._id == caller uid
+        allow create: if isChatParticipant(chatId)
+                      && request.resource.data.user._id == request.auth.uid;
+
+        allow update, delete: if false;
+      }
+    }
+
+    // Users collection
+    match /users/{uid} {
+      allow read: if isSignedIn() && uid == request.auth.uid;
+      allow create, update: if isSignedIn() && uid == request.auth.uid;
+    }
+  }
+}

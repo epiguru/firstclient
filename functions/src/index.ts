@@ -4,4 +4,5 @@
  */
 
 import { onMessageWritten } from "./triggers/onMessageWritten";
-export { onMessageWritten };
+import { onUserCreated } from "./triggers/onUserCreated";
+export { onMessageWritten, onUserCreated };

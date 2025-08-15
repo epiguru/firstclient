@@ -1,8 +1,7 @@
-import { admin } from '../init/firebase';
+import { db } from '../admin';
 
 export async function getTranscript(chatId: string, limit = 12) {
-  const snap = await admin
-    .firestore()
+  const snap = await db
     .collection('chats')
     .doc(chatId)
     .collection('messages')

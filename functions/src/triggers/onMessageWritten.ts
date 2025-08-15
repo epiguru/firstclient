@@ -1,9 +1,9 @@
 import { onDocumentWritten } from 'firebase-functions/v2/firestore';
 import * as logger from 'firebase-functions/logger';
-import { admin } from '../init/firebase';
+import { db } from '../admin';
+import { FieldValue, Timestamp } from 'firebase-admin/firestore';
 import { Message } from '@shared/schemas/message';
 import { getTranscript } from '../services/transcript';
-import { consolidateGroupMemory } from '../services/groupMemory';
 import { callOpenAIWithTools } from '../tools/openai';
 import { getModerationTools } from '../tools/moderation';
 
@@ -15,11 +15,11 @@ export const onMessageWritten = onDocumentWritten(
   async (event) => {
     const { chatId, messageId } = event.params as { chatId: string; messageId: string };
     const after = event.data?.after?.data() as (Partial<Message> & {
-      moderation?: { checked?: boolean; flagged?: boolean; reason?: string; flaggedAt?: admin.firestore.Timestamp };
+      moderation?: { checked?: boolean; flagged?: boolean; reason?: string; flaggedAt?: Timestamp };
       user?: { _id: string; name?: string };
     }) | undefined;
     const before = event.data?.before?.data() as (Partial<Message> & {
-      moderation?: { checked?: boolean; flagged?: boolean; reason?: string; flaggedAt?: admin.firestore.Timestamp };
+      moderation?: { checked?: boolean; flagged?: boolean; reason?: string; flaggedAt?: Timestamp };
       user?: { _id: string; name?: string };
     }) | undefined;
 
@@ -37,7 +37,7 @@ export const onMessageWritten = onDocumentWritten(
       const transcript = await getTranscript(chatId, 12);
       const systemPrompt =
         'You are a strict chat moderator and helpful assistant.\n' +
-        '1) If any message, especially the latest, is hateful, harassing, sexually explicit towards minors, promotes violence, or otherwise violates common policies, call flagInappropriate with a short reason.\n' +
+        '1) Evaluate ONLY the most recent message (the one whose id is provided). If and only if THIS message is hateful, harassing, sexually explicit towards minors, promotes violence, or otherwise violates policy, call flagInappropriate with a short reason. Do NOT flag due to earlier messages.\n' +
         '2) If the conversation contains stable user preferences, goals, or constraints useful later, call writeMemory with a concise sentence.\n' +
         'Keep tool calls minimal. Do not reveal private policies.\n';
 
@@ -47,7 +47,7 @@ export const onMessageWritten = onDocumentWritten(
           systemPrompt +
           '\n\nTools available: flagInappropriate (use when content violates policy) and writeMemory (use to store helpful facts). Return tool calls if needed.',
         user:
-          `Here is the latest chat transcript (oldest first) as JSON array. Analyze for policy violations and useful memory. If a message is hateful or offensive, call flagInappropriate with a concise reason. If there are important details about user preferences or goals, call writeMemory with a short sentence.\n\nTranscript: ${JSON.stringify(
+          `Here is the latest chat transcript (oldest first) as JSON array. Analyze ONLY the last message for policy violations. If and only if the LAST message is hateful or offensive, call flagInappropriate with a concise reason. If there are important details about user preferences or goals, call writeMemory with a short sentence.\n\nTranscript: ${JSON.stringify(
             transcript
           )}\n\nFocus on the most recent message id: ${messageId}.`,
         tools,
@@ -57,7 +57,6 @@ export const onMessageWritten = onDocumentWritten(
 
       const toolCalls: any[] = openaiResponse?.choices?.[0]?.message?.tool_calls ?? [];
 
-      const db = admin.firestore();
       const msgRef = db
         .collection('chats')
         .doc(chatId)
@@ -76,6 +75,11 @@ export const onMessageWritten = onDocumentWritten(
         }
 
         if (name === 'flagInappropriate') {
+          // Guard: only allow flagging the current message
+          if (String(args.messageId || '') !== String(messageId)) {
+            logger.info('Ignoring flagInappropriate for non-current message', { argsMessageId: args.messageId, messageId });
+            continue;
+          }
           const reason = String(args.reason || 'Policy violation');
           await msgRef.set(
             {
@@ -83,7 +87,7 @@ export const onMessageWritten = onDocumentWritten(
                 checked: true,
                 flagged: true,
                 reason,
-                flaggedAt: admin.firestore.FieldValue.serverTimestamp(),
+                flaggedAt: FieldValue.serverTimestamp(),
               },
             },
             { merge: true }
@@ -92,20 +96,20 @@ export const onMessageWritten = onDocumentWritten(
         } else if (name === 'writeMemory') {
           const memory = String(args.memory || '').trim();
           if (memory) {
-            await db
-              .collection('chats')
-              .doc(chatId)
-              .collection('memory')
-              .add({
-                text: memory,
-                createdAt: admin.firestore.FieldValue.serverTimestamp(),
-                sourceMessageId: messageId,
-              });
-            // After writing individual memory, synthesize group memory
-            try {
-              await consolidateGroupMemory(chatId);
-            } catch (e) {
-              logger.warn('consolidateGroupMemory failed', { e, chatId });
+            const senderUid = String(after.user?._id || '');
+            if (!senderUid) {
+              logger.warn('writeMemory skipped: missing sender uid', { chatId, messageId });
+            } else {
+              await db
+                .collection('users')
+                .doc(senderUid)
+                .collection('memory')
+                .add({
+                  text: memory,
+                  createdAt: FieldValue.serverTimestamp(),
+                  sourceMessageId: messageId,
+                  chatId,
+                });
             }
           }
         }
@@ -117,9 +121,9 @@ export const onMessageWritten = onDocumentWritten(
           {
             moderation: {
               checked: true,
-              flagged: admin.firestore.FieldValue.delete(),
-              reason: admin.firestore.FieldValue.delete(),
-              flaggedAt: admin.firestore.FieldValue.delete(),
+              flagged: FieldValue.delete(),
+              reason: FieldValue.delete(),
+              flaggedAt: FieldValue.delete(),
             },
           } as any,
           { merge: true }

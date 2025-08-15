@@ -48,7 +48,7 @@ export default function GroupTab() {
     <ScrollView style={styles.container}>
       <YStack p={16} space>
         <H2>Group Memory & Alignment</H2>
-        <Paragraph theme="alt2">
+        <Paragraph style={{ color: "#6b7280" }}>
           View and manage shared context for your groups. This is a starter
           screen – we can wire it to your preferred "memory/alignment" data
           model next.
@@ -62,7 +62,7 @@ export default function GroupTab() {
             <Card key={g.id} bordered elevate size="$4" p="$4" my="$2">
               <YStack space>
                 <Text fontWeight="700">{g.name}</Text>
-                <Text theme="alt2">Members: {g.participants.length}</Text>
+                <Text style={{ color: "#6b7280" }}>Members: {g.participants.length}</Text>
                 <Separator />
                 <Text>Alignment: Coming soon</Text>
                 <Text>Memory: Coming soon</Text>

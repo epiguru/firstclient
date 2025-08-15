@@ -1,7 +1,6 @@
 import firestore, {
   FirebaseFirestoreTypes,
 } from "@react-native-firebase/firestore";
-import type { User } from "@shared/schemas/user";
 import { useRouter } from "expo-router";
 import { Formik } from "formik";
 import React, { useEffect, useState } from "react";
@@ -9,17 +8,18 @@ import { StyleSheet } from "react-native";
 import { Button, Card, Input, ScrollView, Text, XStack, YStack } from "tamagui";
 import { z } from "zod";
 import { toFormikValidationSchema } from "zod-formik-adapter";
-import { useAuth } from "../../contexts/AuthContext";
-import { firestore_instance } from "../../firebase/config";
+import { useAuth } from "../../../contexts/AuthContext";
+import { firestore_instance } from "../../../firebase/config";
+import type { User } from "@shared/schemas/user";
+
+// Use shared User type from @shared/schemas/user
 
 export default function NewChatRoute() {
   const { user } = useAuth();
   const router = useRouter();
   const [search, setSearch] = useState("");
   const [users, setUsers] = useState<User[]>([]);
-  const [existingDirectPartnerIds, setExistingDirectPartnerIds] = useState<
-    Set<string>
-  >(new Set());
+  const [existingDirectPartnerIds, setExistingDirectPartnerIds] = useState<Set<string>>(new Set());
   // Formik will manage: mode, chatName, selectedUsers
 
   useEffect(() => {
@@ -39,7 +39,7 @@ export default function NewChatRoute() {
     return () => unsub();
   }, [user?.uid]);
 
-  // Subscribe to direct chats for current user so we can exclude existing partners
+  // Subscribe to direct chats the current user already has, to exclude those users from the list
   useEffect(() => {
     const uid = String(user?.uid || "");
     if (!uid) return;
@@ -51,9 +51,7 @@ export default function NewChatRoute() {
       const partnerIds = new Set<string>();
       snap.docs.forEach((d) => {
         const data = d.data() as any;
-        const parts: string[] = Array.isArray(data?.participants)
-          ? data.participants.map(String)
-          : [];
+        const parts: string[] = Array.isArray(data?.participants) ? data.participants.map(String) : [];
         const other = parts.find((p) => p !== uid);
         if (other) partnerIds.add(other);
       });
@@ -62,10 +60,8 @@ export default function NewChatRoute() {
     return () => unsub();
   }, [user?.uid]);
 
-  const filtered = users.filter(
-    (u) =>
-      u.email.toLowerCase().includes(search.toLowerCase()) &&
-      !existingDirectPartnerIds.has(u.id)
+  const filtered = users.filter((u) =>
+    u.email.toLowerCase().includes(search.toLowerCase()) && !existingDirectPartnerIds.has(u.id)
   );
 
   // Zod schema: discriminated union on mode
@@ -105,7 +101,7 @@ export default function NewChatRoute() {
               if (!snap.empty) {
                 const doc = snap.docs[0];
                 router.push({
-                  pathname: "/chat/[chatId]",
+                  pathname: "/(tabs)/chat/[chatId]",
                   params: {
                     chatId: doc.id,
                     chatName: (doc.data() as any).name as string,
@@ -123,7 +119,7 @@ export default function NewChatRoute() {
                 createdAt: firestore.FieldValue.serverTimestamp(),
               });
               router.push({
-                pathname: "/chat/[chatId]",
+                pathname: "/(tabs)/chat/[chatId]",
                 params: { chatId: chatRef.id, chatName: name },
               });
             } else {
@@ -134,7 +130,7 @@ export default function NewChatRoute() {
                 createdAt: firestore.FieldValue.serverTimestamp(),
               });
               router.push({
-                pathname: "/chat/[chatId]",
+                pathname: "/(tabs)/chat/[chatId]",
                 params: { chatId: chatRef.id, chatName: values.chatName },
               });
             }
@@ -183,7 +179,7 @@ export default function NewChatRoute() {
                 />
               )}
               {touched.chatName && typeof errors.chatName === "string" ? (
-                <Text color="$red10">{errors.chatName}</Text>
+                <Text style={{ color: "#ef4444" }}>{errors.chatName}</Text>
               ) : null}
 
               <Input
@@ -226,7 +222,7 @@ export default function NewChatRoute() {
               </ScrollView>
 
               {typeof errors.selectedUsers === "string" ? (
-                <Text color="$red10">{errors.selectedUsers}</Text>
+                <Text style={{ color: "#ef4444" }}>{errors.selectedUsers}</Text>
               ) : null}
 
               <Button
